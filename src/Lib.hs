@@ -70,6 +70,42 @@ joinConsumer (Await (Await state _) next) =
 tailConsumer :: item -> Consumer item state -> Consumer item state
 tailConsumer item (Await _ next) = next item
 
+---------------
+-- Consumer2 --
+---------------
+
+-- TODO: This is just Cofree...
+data Consumer2 w state
+  = Await2 state (w (Consumer2 w state))
+  deriving Functor
+
+instance Monad w => Applicative (Consumer2 w) where
+  pure :: state -> Consumer2 w state
+  pure a = Await2 a (pure $ pure a)
+
+  (<*>) :: Consumer2 w (a -> b) -> Consumer2 w a -> Consumer2 w b
+  Await2 a2b nextA2b <*> Await2 a nextA =
+    Await2 (a2b a) (nextA2b <*> nextA)
+
+-- instance Monad (Consumer2 w) where
+--   (>>=) :: Consumer2 item a -> (a -> Consumer2 item b) -> Consumer2 item b
+--   Consumer2@(Await2 state next) >>= f = joinConsumer $ fmap f Consumer2
+
+instance Functor w => Comonad (Consumer2 w) where
+  extract :: Consumer2 w state -> state
+  extract (Await2 state _) = state
+
+  extend :: (Consumer2 w a -> b) -> Consumer2 w a -> Consumer2 w b
+  extend f consumer@(Await2 a next) =
+    Await2 (f consumer) $ fmap (extend f) next
+
+-- joinConsumer :: Consumer2 item (Consumer2 item state) -> Consumer2 item state
+-- joinConsumer (Await2 (Await2 state _) next) =
+--   Await2 state $ \item -> joinConsumer $ fmap (tailConsumer item) $ next item
+
+-- tailConsumer :: Comonad w => Consumer2 w state -> Consumer2 w state
+-- tailConsumer item (Await2 _ next) = next item
+
 -----------------------------------
 -- Connect Producer and Consumer --
 -----------------------------------
