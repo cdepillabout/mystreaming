@@ -40,6 +40,9 @@ yield item = Yield item (Pure ())
 -- Consumer --
 --------------
 
+-- TODO:
+-- What we want can also be described as a Moore machine (from machines).
+-- This might also be able to be expressed as the Fold type from the foldl library.
 data Consumer item state
   = Await state (item -> Consumer item state)
   deriving Functor
